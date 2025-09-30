@@ -324,6 +324,83 @@ def create_features(df):
     return df
 
 
+def prepare_train_test_split(df):
+    """
+    Prépare les ensembles d'entraînement et de test
+    
+    Parameters:
+        df (DataFrame): Données encodées
+    
+    Returns:
+        tuple: X_train, X_test, y_train, y_test
+    """
+    # Séparation des features et de la target
+    X = df.drop('Churn', axis=1)
+    y = df['Churn']
+    
+    # Division train/test avec stratification
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+    
+    print(f"\nTailles des ensembles:")
+    print(f"Train: {X_train.shape[0]} échantillons")
+    print(f"Test: {X_test.shape[0]} échantillons")
+    print(f"Proportion de churn dans train: {y_train.mean():.2%}")
+    print(f"Proportion de churn dans test: {y_test.mean():.2%}")
+    
+    return X_train, X_test, y_train, y_test
+
+
+def scale_features(X_train, X_test):
+    """
+    Normalise les features numériques
+    
+    Parameters:
+        X_train: Ensemble d'entraînement
+        X_test: Ensemble de test
+    
+    Returns:
+        tuple: X_train_scaled, X_test_scaled, scaler
+    """
+    # Identification des colonnes numériques
+    numeric_features = ['tenure', 'MonthlyCharges', 'TotalCharges', 
+                       'ChargesPerTenure', 'EstimatedMonths']
+    numeric_features = [col for col in numeric_features if col in X_train.columns]
+    
+    # Application du scaler
+    scaler = StandardScaler()
+    X_train_scaled = X_train.copy()
+    X_test_scaled = X_test.copy()
+    
+    X_train_scaled[numeric_features] = scaler.fit_transform(X_train[numeric_features])
+    X_test_scaled[numeric_features] = scaler.transform(X_test[numeric_features])
+    
+    print("Normalisation appliquée aux features numériques")
+    
+    return X_train_scaled, X_test_scaled, scaler
+
+
+def save_processed_data(X_train, X_test, y_train, y_test, output_dir='../data/processed'):
+    """
+    Sauvegarde les données préparées
+    
+    Parameters:
+        X_train, X_test, y_train, y_test: Ensembles de données
+        output_dir (str): Répertoire de sortie
+    """
+    # Création du répertoire si nécessaire
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Sauvegarde
+    X_train.to_csv(f'{output_dir}/X_train.csv', index=False)
+    X_test.to_csv(f'{output_dir}/X_test.csv', index=False)
+    y_train.to_csv(f'{output_dir}/y_train.csv', index=False)
+    y_test.to_csv(f'{output_dir}/y_test.csv', index=False)
+    
+    print(f"\nDonnées sauvegardées dans {output_dir}")
+
+
 # Programme principal
 def main():
     """
@@ -360,7 +437,19 @@ def main():
     
     # Création de nouvelles features
     data_featured = create_features(data_encoded)
+
+    # Préparation train/test
+    X_train, X_test, y_train, y_test = prepare_train_test_split(data_featured)
     
+    # Normalisation
+    X_train_scaled, X_test_scaled, scaler = scale_features(X_train, X_test)
+    
+    # Sauvegarde
+    save_processed_data(X_train_scaled, X_test_scaled, y_train, y_test)
+    
+    print("\n" + "="*80)
+    print("PRÉPARATION DES DONNÉES TERMINÉE")
+    print("="*80)
 
 if __name__ == "__main__":
     main()
