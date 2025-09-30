@@ -1,3 +1,10 @@
+"""
+Script de préparation et d'analyse exploratoire des données
+Dataset: Telco Customer Churn
+Auteur: [Votre nom]
+Date: [Date]
+"""
+
 # Importation des bibliothèques
 import pandas as pd
 import numpy as np
@@ -11,6 +18,7 @@ from sklearn.preprocessing import StandardScaler
 sns.set_style('whitegrid')
 plt.rcParams['figure.figsize'] = (12, 6)
 
+
 def load_data(filepath):
     """
     Charge les données depuis un fichier CSV
@@ -23,7 +31,6 @@ def load_data(filepath):
     """
     data = pd.read_csv(filepath)
     return data
-
 
 
 def analyze_data_quality(data):
@@ -58,6 +65,12 @@ def analyze_data_quality(data):
     
     # Doublons
     print(f"\nNombre de doublons: {data.duplicated().sum()}")
+    
+    # Vérification spécifique de TotalCharges
+    print("\nAnalyse spécifique de TotalCharges:")
+    # Conversion temporaire pour détecter les problèmes
+    temp_total = pd.to_numeric(data['TotalCharges'], errors='coerce')
+    print(f"Nombre de valeurs non numériques dans TotalCharges: {temp_total.isnull().sum()}")
     
     return missing_df
 
@@ -96,7 +109,6 @@ def perform_eda(data):
     return numerical_cols, categorical_cols, churn_distribution
 
 
-
 def visualize_target_distribution(churn_distribution):
     """
     Visualise la distribution de la variable cible
@@ -133,25 +145,31 @@ def visualize_numerical_features(data):
     Parameters:
         data (DataFrame): Données à visualiser
     """
+    # Copie pour éviter de modifier les données originales
+    data_viz = data.copy()
+    
+    # Conversion de TotalCharges en numérique avant visualisation
+    data_viz['TotalCharges'] = pd.to_numeric(data_viz['TotalCharges'], errors='coerce')
+    
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     
     # Tenure
-    axes[0].boxplot([data[data['Churn']=='No']['tenure'].dropna(), 
-                     data[data['Churn']=='Yes']['tenure'].dropna()],
+    axes[0].boxplot([data_viz[data_viz['Churn']=='No']['tenure'].dropna(), 
+                     data_viz[data_viz['Churn']=='Yes']['tenure'].dropna()],
                     labels=['No Churn', 'Churn'])
     axes[0].set_title('Tenure vs Churn')
     axes[0].set_ylabel('Tenure (mois)')
     
     # MonthlyCharges
-    axes[1].boxplot([data[data['Churn']=='No']['MonthlyCharges'].dropna(), 
-                     data[data['Churn']=='Yes']['MonthlyCharges'].dropna()],
+    axes[1].boxplot([data_viz[data_viz['Churn']=='No']['MonthlyCharges'].dropna(), 
+                     data_viz[data_viz['Churn']=='Yes']['MonthlyCharges'].dropna()],
                     labels=['No Churn', 'Churn'])
     axes[1].set_title('Monthly Charges vs Churn')
     axes[1].set_ylabel('Charges mensuelles ($)')
     
     # TotalCharges
-    axes[2].boxplot([data[data['Churn']=='No']['TotalCharges'].dropna(), 
-                     data[data['Churn']=='Yes']['TotalCharges'].dropna()],
+    axes[2].boxplot([data_viz[data_viz['Churn']=='No']['TotalCharges'].dropna(), 
+                     data_viz[data_viz['Churn']=='Yes']['TotalCharges'].dropna()],
                     labels=['No Churn', 'Churn'])
     axes[2].set_title('Total Charges vs Churn')
     axes[2].set_ylabel('Charges totales ($)')
@@ -195,7 +213,6 @@ def visualize_categorical_features(data):
     plt.show()
 
 
-
 def create_correlation_matrix(data, numerical_cols):
     """
     Crée et visualise la matrice de corrélation
@@ -209,10 +226,19 @@ def create_correlation_matrix(data, numerical_cols):
     """
     # Création d'une version encodée pour la corrélation
     df_encoded = data.copy()
+    
+    # Conversion de TotalCharges en numérique
+    df_encoded['TotalCharges'] = pd.to_numeric(df_encoded['TotalCharges'], errors='coerce')
+    
+    # Encodage de Churn en binaire
     df_encoded['Churn_Binary'] = (df_encoded['Churn'] == 'Yes').astype(int)
     
-    # Calcul de la corrélation
-    correlation_matrix = df_encoded[numerical_cols + ['Churn_Binary']].corr()
+    # Liste des colonnes numériques à utiliser
+    cols_for_corr = [col for col in numerical_cols if col in df_encoded.columns]
+    cols_for_corr.append('Churn_Binary')
+    
+    # Calcul de la corrélation (en supprimant les valeurs manquantes)
+    correlation_matrix = df_encoded[cols_for_corr].corr()
     
     # Visualisation
     plt.figure(figsize=(10, 8))
@@ -294,34 +320,6 @@ def encode_features(data):
     
     return df_encoded
 
-
-def create_features(df):
-    """
-    Crée de nouvelles features
-    
-    Parameters:
-        df (DataFrame): Données
-    
-    Returns:
-        DataFrame: Données avec nouvelles features
-    """
-    print("\nCréation de nouvelles features...")
-    
-    # Ratio charges mensuelles / tenure
-    df['ChargesPerTenure'] = df.apply(
-        lambda x: x['MonthlyCharges'] / x['tenure'] if x['tenure'] > 0 else x['MonthlyCharges'], 
-        axis=1
-    )
-    
-    # Estimation du nombre de mois
-    df['EstimatedMonths'] = df.apply(
-        lambda x: x['TotalCharges'] / x['MonthlyCharges'] if x['MonthlyCharges'] > 0 else 0, 
-        axis=1
-    )
-    
-    print("Nouvelles features créées: ChargesPerTenure, EstimatedMonths")
-    
-    return df
 
 
 def prepare_train_test_split(df):
@@ -412,20 +410,23 @@ def main():
     print("="*80)
     
     data = load_data("../data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
-    print(f"\nDonnées chargées: {data.shape[0]} lignes, {data.shape[1]} colonnes")
+    print(f"\nDonnées chargées: {data.shape[0]} lignes, {data.shape[1]} colonnes")    
+    data.loc[(data['TotalCharges'].isnull()) & (data['tenure'] == 0), 'TotalCharges'] = 0
+
 
     # Analyse de la qualité des données
     missing_df = analyze_data_quality(data)
+    
+
 
     # Analyse exploratoire
     numerical_cols, categorical_cols, churn_distribution = perform_eda(data)
-
+    
     # Visualisations
     visualize_target_distribution(churn_distribution)
     visualize_numerical_features(data)
-    visualize_categorical_features(data)     
-
-
+    visualize_categorical_features(data)
+    
     # Matrice de corrélation
     correlation_matrix = create_correlation_matrix(data, numerical_cols)
     
@@ -435,11 +436,9 @@ def main():
     # Encodage des variables
     data_encoded = encode_features(data_clean)
     
-    # Création de nouvelles features
-    data_featured = create_features(data_encoded)
-
+    
     # Préparation train/test
-    X_train, X_test, y_train, y_test = prepare_train_test_split(data_featured)
+    X_train, X_test, y_train, y_test = prepare_train_test_split(data_encoded)
     
     # Normalisation
     X_train_scaled, X_test_scaled, scaler = scale_features(X_train, X_test)
@@ -450,6 +449,7 @@ def main():
     print("\n" + "="*80)
     print("PRÉPARATION DES DONNÉES TERMINÉE")
     print("="*80)
+
 
 if __name__ == "__main__":
     main()
