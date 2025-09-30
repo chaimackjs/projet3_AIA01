@@ -96,6 +96,105 @@ def perform_eda(data):
     return numerical_cols, categorical_cols, churn_distribution
 
 
+
+def visualize_target_distribution(churn_distribution):
+    """
+    Visualise la distribution de la variable cible
+    
+    Parameters:
+        churn_distribution: Distribution du churn
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    
+    # Graphique en barres
+    axes[0].bar(churn_distribution.index, churn_distribution.values, 
+                color=['#2ecc71', '#e74c3c'])
+    axes[0].set_title('Distribution du Churn', fontsize=14, fontweight='bold')
+    axes[0].set_xlabel('Churn')
+    axes[0].set_ylabel('Nombre de clients')
+    
+    # Ajout des valeurs sur les barres
+    for i, v in enumerate(churn_distribution.values):
+        axes[0].text(i, v + 50, str(v), ha='center')
+    
+    # Graphique en secteurs
+    axes[1].pie(churn_distribution.values, labels=churn_distribution.index, 
+                autopct='%1.2f%%', colors=['#2ecc71', '#e74c3c'], startangle=90)
+    axes[1].set_title('Proportion du Churn', fontsize=14, fontweight='bold')
+    
+    plt.tight_layout()
+    plt.show()
+
+
+def visualize_numerical_features(data):
+    """
+    Visualise les variables numériques en fonction du churn
+    
+    Parameters:
+        data (DataFrame): Données à visualiser
+    """
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+    # Tenure
+    axes[0].boxplot([data[data['Churn']=='No']['tenure'].dropna(), 
+                     data[data['Churn']=='Yes']['tenure'].dropna()],
+                    labels=['No Churn', 'Churn'])
+    axes[0].set_title('Tenure vs Churn')
+    axes[0].set_ylabel('Tenure (mois)')
+    
+    # MonthlyCharges
+    axes[1].boxplot([data[data['Churn']=='No']['MonthlyCharges'].dropna(), 
+                     data[data['Churn']=='Yes']['MonthlyCharges'].dropna()],
+                    labels=['No Churn', 'Churn'])
+    axes[1].set_title('Monthly Charges vs Churn')
+    axes[1].set_ylabel('Charges mensuelles ($)')
+    
+    # TotalCharges
+    axes[2].boxplot([data[data['Churn']=='No']['TotalCharges'].dropna(), 
+                     data[data['Churn']=='Yes']['TotalCharges'].dropna()],
+                    labels=['No Churn', 'Churn'])
+    axes[2].set_title('Total Charges vs Churn')
+    axes[2].set_ylabel('Charges totales ($)')
+    
+    plt.tight_layout()
+    plt.show()
+
+
+def visualize_categorical_features(data):
+    """
+    Visualise le taux de churn pour les variables catégorielles importantes
+    
+    Parameters:
+        data (DataFrame): Données à visualiser
+    """
+    important_categorical = ['Contract', 'InternetService', 'PaymentMethod', 
+                            'TechSupport', 'OnlineSecurity']
+    
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+    axes = axes.flatten()
+    
+    for idx, col in enumerate(important_categorical):
+        if idx < len(important_categorical):
+            churn_rates = data.groupby(col)['Churn'].apply(
+                lambda x: (x=='Yes').sum() / len(x) * 100
+            )
+            axes[idx].bar(range(len(churn_rates)), churn_rates.values, color='coral')
+            axes[idx].set_title(f'Taux de Churn par {col}')
+            axes[idx].set_xticks(range(len(churn_rates)))
+            axes[idx].set_xticklabels(churn_rates.index, rotation=45, ha='right')
+            axes[idx].set_ylabel('Taux de Churn (%)')
+            
+            # Ajout des valeurs sur les barres
+            for i, v in enumerate(churn_rates.values):
+                axes[idx].text(i, v + 1, f'{v:.1f}%', ha='center', fontsize=9)
+    
+    # Suppression du subplot vide
+    fig.delaxes(axes[-1])
+    
+    plt.tight_layout()
+    plt.show()
+
+
 # Programme principal
 def main():
     """
@@ -109,13 +208,17 @@ def main():
     data = load_data("../data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
     print(f"\nDonnées chargées: {data.shape[0]} lignes, {data.shape[1]} colonnes")
 
-
     # Analyse de la qualité des données
     missing_df = analyze_data_quality(data)
 
     # Analyse exploratoire
     numerical_cols, categorical_cols, churn_distribution = perform_eda(data)
-        
+
+    # Visualisations
+    visualize_target_distribution(churn_distribution)
+    visualize_numerical_features(data)
+    visualize_categorical_features(data)     
+
 
 if __name__ == "__main__":
     main()
