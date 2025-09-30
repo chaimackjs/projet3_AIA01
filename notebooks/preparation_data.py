@@ -1,10 +1,3 @@
-"""
-Script de préparation et d'analyse exploratoire des données
-Dataset: Telco Customer Churn
-Auteur: [Votre nom]
-Date: [Date]
-"""
-
 # Importation des bibliothèques
 import pandas as pd
 import numpy as np
