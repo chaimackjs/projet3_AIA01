@@ -25,6 +25,43 @@ def load_data(filepath):
     return data
 
 
+
+def analyze_data_quality(data):
+    """
+    Analyse la qualité des données (valeurs manquantes, doublons, types)
+    
+    Parameters:
+        data (DataFrame): Données à analyser
+    """
+    print("\n" + "="*80)
+    print("ANALYSE DE LA QUALITÉ DES DONNÉES")
+    print("="*80)
+    
+    # Types de données
+    print("\nTypes de données par colonne:")
+    print(data.dtypes)
+    
+    # Valeurs manquantes
+    print("\nAnalyse des valeurs manquantes:")
+    missing_values = data.isnull().sum()
+    missing_percentage = (missing_values / len(data)) * 100
+    missing_df = pd.DataFrame({
+        'Valeurs_Manquantes': missing_values,
+        'Pourcentage': missing_percentage
+    })
+    
+    missing_df = missing_df[missing_df['Valeurs_Manquantes'] > 0]
+    if len(missing_df) > 0:
+        print(missing_df)
+    else:
+        print("Aucune valeur manquante détectée")
+    
+    # Doublons
+    print(f"\nNombre de doublons: {data.duplicated().sum()}")
+    
+    return missing_df
+
+
 # Programme principal
 def main():
     """
@@ -38,6 +75,10 @@ def main():
     data = load_data("../data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
     print(f"\nDonnées chargées: {data.shape[0]} lignes, {data.shape[1]} colonnes")
 
+
+    # Analyse de la qualité des données
+    missing_df = analyze_data_quality(data)
+    
 
 if __name__ == "__main__":
     main()
