@@ -1,51 +1,43 @@
+# Importation des bibliothèques
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Configuration de l'affichage
+sns.set_style('whitegrid')
+plt.rcParams['figure.figsize'] = (12, 6)
+
+def load_data(filepath):
+    """
+    Charge les données depuis un fichier CSV
+    
+    Parameters:
+        filepath (str): Chemin vers le fichier CSV
+    
+    Returns:
+        DataFrame: Données chargées
+    """
+    data = pd.read_csv(filepath)
+    return data
 
 
-data = pd.read_csv("../data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+# Programme principal
+def main():
+    """
+    Fonction principale pour exécuter toutes les étapes de préparation des données
+    """
+    # Chargement des données
+    print("="*80)
+    print("PRÉPARATION DES DONNÉES - TELCO CUSTOMER CHURN")
+    print("="*80)
+    
+    data = load_data("../data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+    print(f"\nDonnées chargées: {data.shape[0]} lignes, {data.shape[1]} colonnes")
 
-print(data.head())
 
-print(data.info())
-
-print(data["gender"])
-
-data = data.drop("customerID", axis=1)  
-
-# Encode categorical columns
-data["gender"] = data["gender"].map({"Male": 0, "Female": 1})
-data["Partner"] = data["Partner"].map({"Yes": 1, "No": 0})
-data["Dependents"] = data["Dependents"].map({"Yes": 1, "No": 0})
-data["PhoneService"] = data["PhoneService"].map({"Yes": 1, "No": 0})
-data["MultipleLines"] = data["MultipleLines"].map({"Yes": 1, "No": 0, "No phone service": 2})
-data["InternetService"] = data["InternetService"].map({"DSL": 1, "No": 0, "Fiber optic": 2})
-data["OnlineSecurity"] = data["OnlineSecurity"].map({"Yes": 1, "No": 0, "No internet service": 2})
-data["OnlineBackup"] = data["OnlineBackup"].map({"Yes": 1, "No": 0, "No internet service": 2})
-data["DeviceProtection"] = data["DeviceProtection"].map({"Yes": 1, "No": 0, "No internet service": 2})
-data["TechSupport"] = data["TechSupport"].map({"Yes": 1, "No": 0, "No internet service": 2})
-data["StreamingTV"] = data["StreamingTV"].map({"Yes": 1, "No": 0, "No internet service": 2})
-data["StreamingMovies"] = data["StreamingMovies"].map({"Yes": 1, "No": 0, "No internet service": 2})
-data["Contract"] = data["Contract"].map({"Month-to-month": 0, "One year": 1, "Two year": 2})
-data["PaperlessBilling"] = data["PaperlessBilling"].map({"Yes": 1, "No": 0})
-data["PaymentMethod"] = data["PaymentMethod"].map({
-    "Electronic check": 0,
-    "Mailed check": 1,
-    "Bank transfer (automatic)": 2,
-    "Credit card (automatic)": 3
-})
-data["Churn"] = data["Churn"].map({"Yes": 1, "No": 0})
-
-# Convert TotalCharges to numeric, coerce errors to NaN and fill with 0
-data["TotalCharges"] = pd.to_numeric(data["TotalCharges"], errors='coerce').fillna(0)
-
-# Compute correlation matrix for all columns
-correlation_mat = data.corr()
-
-print(correlation_mat)
-
-sns.heatmap(correlation_mat, annot = True)
-plt.title("Correlation matrix of Breast Cancer data")
-plt.xlabel("cell nucleus features")
-plt.ylabel("cell nucleus features")
-plt.show()
+if __name__ == "__main__":
+    main()
