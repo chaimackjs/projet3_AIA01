@@ -62,6 +62,40 @@ def analyze_data_quality(data):
     return missing_df
 
 
+def perform_eda(data):
+    """
+    Effectue une analyse exploratoire des données
+    
+    Parameters:
+        data (DataFrame): Données à analyser
+    """
+    print("\n" + "="*80)
+    print("ANALYSE STATISTIQUE DESCRIPTIVE")
+    print("="*80)
+    
+    # Séparation des variables par type
+    numerical_cols = data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
+    
+    print(f"\nColonnes numériques ({len(numerical_cols)}): {numerical_cols}")
+    print(f"Colonnes catégorielles ({len(categorical_cols)}): {categorical_cols}")
+    
+    # Statistiques descriptives
+    print("\nStatistiques des variables numériques:")
+    print(data[numerical_cols].describe())
+    
+    # Distribution de la variable cible
+    print("\nDistribution de la variable cible (Churn):")
+    churn_distribution = data['Churn'].value_counts()
+    churn_percentage = data['Churn'].value_counts(normalize=True) * 100
+    print(pd.DataFrame({
+        'Count': churn_distribution,
+        'Percentage': churn_percentage
+    }))
+    
+    return numerical_cols, categorical_cols, churn_distribution
+
+
 # Programme principal
 def main():
     """
@@ -78,7 +112,10 @@ def main():
 
     # Analyse de la qualité des données
     missing_df = analyze_data_quality(data)
-    
+
+    # Analyse exploratoire
+    numerical_cols, categorical_cols, churn_distribution = perform_eda(data)
+        
 
 if __name__ == "__main__":
     main()
