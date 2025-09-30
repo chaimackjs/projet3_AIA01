@@ -195,6 +195,135 @@ def visualize_categorical_features(data):
     plt.show()
 
 
+
+def create_correlation_matrix(data, numerical_cols):
+    """
+    Crée et visualise la matrice de corrélation
+    
+    Parameters:
+        data (DataFrame): Données
+        numerical_cols (list): Liste des colonnes numériques
+    
+    Returns:
+        DataFrame: Matrice de corrélation
+    """
+    # Création d'une version encodée pour la corrélation
+    df_encoded = data.copy()
+    df_encoded['Churn_Binary'] = (df_encoded['Churn'] == 'Yes').astype(int)
+    
+    # Calcul de la corrélation
+    correlation_matrix = df_encoded[numerical_cols + ['Churn_Binary']].corr()
+    
+    # Visualisation
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0, 
+                square=True, linewidths=1, cbar_kws={"shrink": 0.8})
+    plt.title('Matrice de Corrélation', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
+    
+    return correlation_matrix
+
+
+def clean_data(data):
+    """
+    Nettoie les données en traitant les valeurs manquantes et les conversions
+    
+    Parameters:
+        data (DataFrame): Données à nettoyer
+    
+    Returns:
+        DataFrame: Données nettoyées
+    """
+    print("\n" + "="*80)
+    print("NETTOYAGE DES DONNÉES")
+    print("="*80)
+    
+    # Conversion de TotalCharges en numérique
+    data['TotalCharges'] = pd.to_numeric(data['TotalCharges'], errors='coerce')
+    
+    # Traitement des valeurs manquantes dans TotalCharges
+    print(f"Valeurs manquantes dans TotalCharges: {data['TotalCharges'].isnull().sum()}")
+    
+    # Les valeurs manquantes correspondent aux nouveaux clients (tenure = 0)
+    data.loc[(data['TotalCharges'].isnull()) & (data['tenure'] == 0), 'TotalCharges'] = 0
+    data['TotalCharges'].dropna(inplace=True)
+    
+    print("Valeurs manquantes traitées")
+    
+    return data
+
+
+def encode_features(data):
+    """
+    Encode les variables catégorielles
+    
+    Parameters:
+        data (DataFrame): Données à encoder
+    
+    Returns:
+        DataFrame: Données encodées
+    """
+    print("\n" + "="*80)
+    print("ENCODAGE DES VARIABLES")
+    print("="*80)
+    
+    df_encoded = data.copy()
+    
+    # Suppression de customerID
+    if 'customerID' in df_encoded.columns:
+        df_encoded.drop('customerID', axis=1, inplace=True)
+    
+    # Variables binaires
+    binary_cols = ['Partner', 'Dependents', 'PhoneService', 'PaperlessBilling', 'Churn']
+    for col in binary_cols:
+        if col in df_encoded.columns:
+            df_encoded[col] = df_encoded[col].map({'Yes': 1, 'No': 0})
+    
+    # Variable gender
+    df_encoded['gender'] = df_encoded['gender'].map({'Male': 1, 'Female': 0})
+    
+    # Variables catégorielles multiples - One-Hot Encoding
+    multi_category_cols = ['MultipleLines', 'InternetService', 'OnlineSecurity', 
+                          'OnlineBackup', 'DeviceProtection', 'TechSupport', 
+                          'StreamingTV', 'StreamingMovies', 'Contract', 'PaymentMethod']
+    
+    df_encoded = pd.get_dummies(df_encoded, columns=multi_category_cols, drop_first=False)
+    
+    print(f"Nombre de colonnes après encodage: {df_encoded.shape[1]}")
+    
+    return df_encoded
+
+
+def create_features(df):
+    """
+    Crée de nouvelles features
+    
+    Parameters:
+        df (DataFrame): Données
+    
+    Returns:
+        DataFrame: Données avec nouvelles features
+    """
+    print("\nCréation de nouvelles features...")
+    
+    # Ratio charges mensuelles / tenure
+    df['ChargesPerTenure'] = df.apply(
+        lambda x: x['MonthlyCharges'] / x['tenure'] if x['tenure'] > 0 else x['MonthlyCharges'], 
+        axis=1
+    )
+    
+    # Estimation du nombre de mois
+    df['EstimatedMonths'] = df.apply(
+        lambda x: x['TotalCharges'] / x['MonthlyCharges'] if x['MonthlyCharges'] > 0 else 0, 
+        axis=1
+    )
+    
+    print("Nouvelles features créées: ChargesPerTenure, EstimatedMonths")
+    
+    return df
+
+
 # Programme principal
 def main():
     """
@@ -219,6 +348,19 @@ def main():
     visualize_numerical_features(data)
     visualize_categorical_features(data)     
 
+
+    # Matrice de corrélation
+    correlation_matrix = create_correlation_matrix(data, numerical_cols)
+    
+    # Nettoyage des données
+    data_clean = clean_data(data)
+    
+    # Encodage des variables
+    data_encoded = encode_features(data_clean)
+    
+    # Création de nouvelles features
+    data_featured = create_features(data_encoded)
+    
 
 if __name__ == "__main__":
     main()
